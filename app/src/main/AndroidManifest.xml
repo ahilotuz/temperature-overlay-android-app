@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
 
     <application
         android:allowBackup="true"
@@ -27,7 +30,10 @@
 
         <service
             android:name=".overlay.OverlayService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+
 
     </application>
 

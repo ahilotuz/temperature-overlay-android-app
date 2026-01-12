@@ -13,8 +13,14 @@ import com.example.temperatureoverlay.data.TemperatureRepository
 import kotlinx.coroutines.*
 
 /**
- * Shows a small overlay view on top of other apps.
- * NOTE: This requires SYSTEM_ALERT_WINDOW permission (user must grant it).
+ * Foreground Service justification (Android 14+):
+ *
+ * - Runs only while the user explicitly enables the temperature overlay.
+ * - Periodically reads battery temperature (system data) and updates the overlay UI.
+ * - User-visible via a persistent notification.
+ * - Stops immediately when user disables the overlay.
+ *
+ * Foreground service type: dataSync
  */
 class OverlayService : Service() {
 
@@ -28,21 +34,23 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        repo = TemperatureRepository(applicationContext)
 
+        // REQUIRED: foreground services must show a notification quickly.
+        startForeground(
+            OverlayNotification.NOTIFICATION_ID,
+            OverlayNotification.build(this)
+        )
+
+        repo = TemperatureRepository(applicationContext)
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        // Inflate the overlay layout.
         overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_temperature, null)
         tempText = overlayView?.findViewById(R.id.overlay_temp_text)
 
-        // Overlay window params:
-        // TYPE_APPLICATION_OVERLAY is the correct type for Android O+.
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            // Not focusable so it won't steal touches/keyboard from apps.
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -53,7 +61,6 @@ class OverlayService : Service() {
 
         windowManager?.addView(overlayView, params)
 
-        // Update the temperature periodically.
         serviceScope.launch {
             while (isActive) {
                 val tempC = repo.readBatteryTemperatureC()
@@ -67,9 +74,7 @@ class OverlayService : Service() {
         super.onDestroy()
         serviceScope.cancel()
 
-        overlayView?.let { view ->
-            windowManager?.removeView(view)
-        }
+        overlayView?.let { view -> windowManager?.removeView(view) }
         overlayView = null
         tempText = null
         windowManager = null

@@ -17,7 +17,8 @@ object OverlayController {
 
     fun startOverlay(context: Context) {
         val intent = Intent(context, OverlayService::class.java)
-        context.startService(intent)
+        context.startForegroundService(intent)
+
     }
 
     fun stopOverlay(context: Context) {
